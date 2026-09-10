@@ -26,44 +26,66 @@ io.use(async (socket, next) => {
     socket.handshake.auth?.token ||
     socket.handshake.headers.authorization?.split(" ")[1];
   const projectId = socket.handshake.query.projectId;
-  socket.project = await Project.findById(projectId);
+  const _socket = /** @type {any} */ (socket);
+  _socket.project = await Project.findById(projectId);
 
   if (!token) {
     return next(new Error("unauthorized"));
   }
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const decoded = jwt.verify(token, /** @type {string} */ (process.env.JWT_SECRET));
   if (!decoded) {
     return next(new Error("unauthorized"));
   }
-  socket.user = decoded;
+  _socket.user = decoded;
   next();
 });
 
 io.on("connection", (socket) => {
-  socket.roomId = socket.project?._id.toString();
+  const _socket = /** @type {any} */ (socket);
+  _socket.roomId = _socket.project?._id.toString();
   console.log("a user connected...");
-  socket.join(socket.roomId);
+  socket.join(_socket.roomId);
 
   socket.on("project-message", async (data) => {
-    const isAipresent = data.message.includes("@ai");
-    socket.broadcast.to(socket.roomId).emit("project-message", data);
-    if (isAipresent) {
-      const prompt = data.message.replace("@ai ", "");
-      const result = await generateResult(prompt);
-      io.to(socket.roomId).emit("project-message", {
-        message: result,
-        sender: {
-          _id: "ai",
-          email: "AI",
-        },
+    try {
+      // Save user message to DB
+      await Project.findByIdAndUpdate(_socket.roomId, {
+        $push: { messages: data }
       });
-      return;
+
+      const isStringMessage = typeof data.message === "string";
+      const isAipresent = isStringMessage && data.message.includes("@ai");
+      
+      socket.broadcast.to(_socket.roomId).emit("project-message", data);
+      
+      if (isAipresent) {
+        const prompt = data.message.replace("@ai ", "");
+        const result = await generateResult(prompt);
+        
+        const aiMessage = {
+          message: result,
+          sender: {
+            _id: "ai",
+            email: "AI",
+            name: "Orbit AI"
+          },
+        };
+
+        // Save AI message to DB
+        await Project.findByIdAndUpdate(_socket.roomId, {
+          $push: { messages: aiMessage }
+        });
+
+        io.to(_socket.roomId).emit("project-message", aiMessage);
+      }
+    } catch (err) {
+      console.error("Error saving/processing message:", err);
     }
   });
 
   socket.on("disconnect", () => {
     console.log("user disconnected");
-    socket.leave(socket.roomId);
+    socket.leave(_socket.roomId);
   });
 });
 

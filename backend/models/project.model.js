@@ -31,6 +31,10 @@ const projectSchema = new mongoose.Schema({
 fileTree:{
     type:Object,
     default:{}
+},
+messages: {
+    type: Array,
+    default: []
 }
 })
 

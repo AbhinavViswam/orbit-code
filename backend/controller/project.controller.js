@@ -1,6 +1,10 @@
 import Project from "../models/project.model.js";
 import User from "../models/user.model.js";
 
+/**
+ * @param {import('express').Request & { user?: any }} req
+ * @param {import('express').Response} res
+ */
 export const createProject = async (req, res) => {
   try {
     const userEmail = req.user.email;
@@ -23,6 +27,10 @@ export const createProject = async (req, res) => {
   }
 };
 
+/**
+ * @param {import('express').Request & { user?: any }} req
+ * @param {import('express').Response} res
+ */
 export const deleteProject = async (req, res) => {
   try {
     const userId = req.user.id; // logged-in user
@@ -53,6 +61,10 @@ export const deleteProject = async (req, res) => {
   }
 };
 
+/**
+ * @param {import('express').Request & { user?: any }} req
+ * @param {import('express').Response} res
+ */
 export const showProject = async (req, res) => {
   try {
     const userEmail = req.user.email;
@@ -76,6 +88,10 @@ export const showProject = async (req, res) => {
   }
 };
 
+/**
+ * @param {import('express').Request & { user?: any }} req
+ * @param {import('express').Response} res
+ */
 export const addProjectPartner = async (req, res) => {
   try {
     const { id } = req.params;
@@ -92,7 +108,7 @@ export const addProjectPartner = async (req, res) => {
     if (!partner) return res.status(404).json({ e: "Partner does not exist" });
 
     // Only owner can add partner
-    if (project.owner[0].ownerid.toString() !== user._id.toString()) {
+    if (project.owner[0]?.ownerid?.toString() !== user._id.toString()) {
       return res
         .status(401)
         .json({ e: "You are not the owner of the project" });
@@ -100,7 +116,7 @@ export const addProjectPartner = async (req, res) => {
 
     // Check if partner already exists
     const isPartnerAlreadyAdded = project.users.some(
-      (u) => u.userid.toString() === partner._id.toString()
+      (u) => u.userid?.toString() === partner._id.toString()
     );
 
     if (isPartnerAlreadyAdded) {
@@ -108,11 +124,11 @@ export const addProjectPartner = async (req, res) => {
     }
 
     // Add partner
-    project.users.push({
+    project.users.push(/** @type {any} */ ({
       userid: partner._id,
       userEmail: partner.email,
       userName: partner.name,
-    });
+    }));
 
     await project.save();
 
@@ -123,6 +139,10 @@ export const addProjectPartner = async (req, res) => {
   }
 };
 
+/**
+ * @param {import('express').Request & { user?: any }} req
+ * @param {import('express').Response} res
+ */
 export const deleteProjectPartner = async (req, res) => {
   try {
     const { id } = req.params;
@@ -140,13 +160,13 @@ export const deleteProjectPartner = async (req, res) => {
     if (!partner) {
       return res.status(404).json({ e: "Partner does not exist" });
     }
-    if (project.owner[0].ownerid.toString() !== user._id.toString()) {
+    if (project.owner[0]?.ownerid?.toString() !== user._id.toString()) {
       return res
         .status(401)
         .json({ e: "You are not the owner of the project" });
     }
     const isPartner = project.users.some(
-      (u) => u.userid.toString() === partner._id.toString()
+      (u) => u.userid?.toString() === partner._id.toString()
     );
 
     if (!isPartner) {
@@ -155,9 +175,9 @@ export const deleteProjectPartner = async (req, res) => {
         .json({ e: "Partner does not exist in this project" });
     }
 
-    project.users = project.users.filter(
-      (u) => u.userid.toString() !== partner._id.toString()
-    );
+    project.users = /** @type {any} */ (project.users.filter(
+      (u) => u.userid?.toString() !== partner._id.toString()
+    ));
     await project.save();
     return res
       .status(200)
@@ -168,6 +188,10 @@ export const deleteProjectPartner = async (req, res) => {
   }
 };
 
+/**
+ * @param {import('express').Request & { user?: any }} req
+ * @param {import('express').Response} res
+ */
 export const showProjectById = async (req, res) => {
   try {
     const { pid } = req.params;
@@ -182,6 +206,10 @@ export const showProjectById = async (req, res) => {
   }
 };
 
+/**
+ * @param {import('express').Request & { user?: any }} req
+ * @param {import('express').Response} res
+ */
 export const updateFileTree = async (req, res) => {
   const { projectId, fileTree } = req.body;
   if (!projectId || !fileTree) {

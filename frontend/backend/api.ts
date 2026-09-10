@@ -129,3 +129,13 @@ export const deleteProject = async (id: any) => {
   const res = await api.delete(`/project/delete/${pid}`);
   return res.data;
 };
+
+export const createCheckoutSession = async () => {
+  const res = await api.post("/billing/checkout");
+  return res.data;
+};
+
+export const createPortalSession = async () => {
+  const res = await api.post("/billing/portal");
+  return res.data;
+};

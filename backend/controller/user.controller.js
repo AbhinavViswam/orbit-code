@@ -1,6 +1,10 @@
 import User from "../models/user.model.js";
 import jwt from "jsonwebtoken";
 
+/**
+ * @param {import('express').Request & { user?: any }} req
+ * @param {import('express').Response} res
+ */
 export const createUserController = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -11,7 +15,7 @@ export const createUserController = async (req, res) => {
     if (existingUser) {
       return res.status(400).json({ e: "User already exists" });
     }
-    const hashedPassword = await User.hashPassword(password);
+    const hashedPassword = await /** @type {any} */ (User).hashPassword(password);
     const user = await User.create({
       name,
       email,
@@ -19,7 +23,7 @@ export const createUserController = async (req, res) => {
     });
     const token = jwt.sign(
       { id: user._id, email: user.email },
-      process.env.JWT_SECRET,
+      /** @type {string} */ (process.env.JWT_SECRET),
       { expiresIn: "7d" }
     );
     res.cookie("token", token, {
@@ -44,6 +48,10 @@ export const createUserController = async (req, res) => {
   }
 };
 
+/**
+ * @param {import('express').Request & { user?: any }} req
+ * @param {import('express').Response} res
+ */
 export const userLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -54,13 +62,13 @@ export const userLogin = async (req, res) => {
     if (!user) {
       return res.status(404).json({ e: "User not found" });
     }
-    const isValid = await user.isValidPassword(password);
+    const isValid = await /** @type {any} */ (user).isValidPassword(password);
     if (!isValid) {
       return res.status(400).json({ e: "Invalid credentials" });
     }
     const token = jwt.sign(
       { id: user._id, email: user.email },
-      process.env.JWT_SECRET,
+      /** @type {string} */ (process.env.JWT_SECRET),
       { expiresIn: "7d" }
     );
     res.cookie("token", token, {
@@ -70,7 +78,8 @@ export const userLogin = async (req, res) => {
       path:"/",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
-    const { password: _, ...userData } = user._doc;
+    const userData = /** @type {any} */ (user).toObject();
+    delete userData.password;
     return res.status(200).json({
       m: "User logged in successfully",
       o: userData,
@@ -82,6 +91,10 @@ export const userLogin = async (req, res) => {
   }
 };
 
+/**
+ * @param {import('express').Request & { user?: any }} req
+ * @param {import('express').Response} res
+ */
 export const userProfile = async (req, res) => {
   const userId = req.user.id;
   const user = await User.findById(userId).select("-password");
@@ -93,6 +106,10 @@ export const userProfile = async (req, res) => {
   }
 };
 
+/**
+ * @param {import('express').Request & { user?: any }} req
+ * @param {import('express').Response} res
+ */
 export const userLogout = async (req, res) => {
   try {
     res.cookie("token", "");
@@ -103,13 +120,17 @@ export const userLogout = async (req, res) => {
   }
 };
 
+/**
+ * @param {import('express').Request & { user?: any }} req
+ * @param {import('express').Response} res
+ */
 export const authCheck = async (req, res) => {
   try {
-    const token = req.cookies.token || req.headers.authorization.split(" ")[1];
+    const token = req.cookies?.token || (req.headers.authorization ? req.headers.authorization.split(" ")[1] : null);
     if (!token) {
       return res.status(401).json({ e: "Token required" });
     }
-    const user = jwt.verify(token, process.env.JWT_SECRET);
+    const user = jwt.verify(token, /** @type {string} */ (process.env.JWT_SECRET));
     if (user) {
       return res.status(200).json({ m: "success", o: true });
     }
